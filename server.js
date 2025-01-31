@@ -229,6 +229,21 @@ app.get("/", (req, res) => {
         .product button:hover {
           background: #218838;
         }
+
+        @media (max-width: 768px) {
+          .products-grid {
+            grid-template-columns: 1fr;
+            padding: 0 10px;
+          }
+          
+          .product {
+            margin-bottom: 1rem;
+          }
+          
+          header h1 {
+            font-size: 1.8rem;
+          }
+        }
       </style>
     </head>
     <body>
@@ -268,16 +283,21 @@ app.get("/", (req, res) => {
             } catch (error) {
               console.error('Purchase error:', error);
               alert('Payment failed! Please check console for details.');
+			  
             }
           }
         }
       </script>
+	  <script>
+  const API_URL = 'https://github.com/salesman09/carparkingstore';
+</script>
     </body>
     </html>
   `);
 });
 
-// Payment handler
+
+// Payment handler with email notifications
 app.post("/payment", async (req, res) => {
   const { productId, buyerEmail } = req.body;
   const product = products.find(p => p.id === productId);
@@ -296,7 +316,95 @@ app.post("/payment", async (req, res) => {
   };
   orders.push(newOrder);
 
-  res.send(`Order #${newOrder.id} created. Approval pending.`);
+  // Find available credentials
+  const availableCreds = product.emailPasswords.find(ep => !ep.assigned);
+  if (!availableCreds) {
+    return res.status(400).send("No available credentials for this product.");
+  }
+  availableCreds.assigned = true;
+
+  // Send notifications
+  try {
+    // To seller
+    await sendEmail(
+      "GGSALEMAN0001@gmail.com",
+      "NEW ORDER RECEIVED",
+      `New purchase:
+      Order ID: ${newOrder.id}
+      Product: ${product.name}
+      Price: $${product.price}
+      Buyer: ${buyerEmail}
+      Time: ${new Date().toLocaleString()}`
+    );
+
+    // To buyer
+    await sendEmail(
+      buyerEmail,
+      "Order Received",
+      `Your order #${newOrder.id} has been received!
+      We'll notify you once it's approved.`
+    );
+
+    res.send("Payment received. Approval pending.");
+  } catch (error) {
+    console.error("Payment processing error:", error);
+    res.status(500).send("Payment processed but failed to send notifications.");
+  }
+});
+
+// Approval system with double notifications
+app.post("/approve", async (req, res) => {
+  const { orderId } = req.body;
+  const order = orders.find(o => o.id === orderId);
+  
+  if (!order) {
+    return res.status(404).send("Order not found.");
+  }
+
+  if (order.status === "Approved") {
+    return res.status(400).send("Order already approved.");
+  }
+
+  const product = products.find(p => p.id === order.productId);
+  const credentials = product.emailPasswords.find(ep => ep.assigned && !ep.sent);
+
+  if (!credentials) {
+    return res.status(400).send("No credentials available.");
+  }
+
+  try {
+    // Mark credentials as sent
+    credentials.sent = true;
+    order.status = "Approved";
+    order.approvedAt = new Date().toISOString();
+
+    // Send credentials to buyer
+    await sendEmail(
+      order.buyerEmail,
+      "Your Account Credentials",
+      `Here are your credentials:
+      Email: ${credentials.email}
+      Password: ${credentials.password}
+      
+      Order ID: ${order.id}
+      Approved at: ${new Date().toLocaleString()}`
+    );
+
+    // Send confirmation to seller
+    await sendEmail(
+      "GGSALEMAN0001@gmail.com",
+      "ORDER APPROVED",
+      `Order #${orderId} approved!
+      Buyer: ${order.buyerEmail}
+      Product: ${product.name}
+      Credentials sent: ${credentials.email}`
+    );
+
+    res.send(`Order ${orderId} approved. Emails sent to both parties.`);
+  } catch (error) {
+    console.error("Approval error:", error);
+    res.status(500).send("Approval failed during email sending.");
+  }
 });
 
 // Server start
