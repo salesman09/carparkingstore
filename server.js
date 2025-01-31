@@ -96,7 +96,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 // Allow requests from your frontend domain(s)
 app.use(cors({
-  origin: ['https://github.com/salesman09/carparkingstore', 'http://localhost:3001'] // Add dev/prod URLs
+  origin: ['https://car-parking-store.onrender.com', 'http://localhost:3001'] // Add dev/prod URLs
 }));
 
 let orders = [];
@@ -273,7 +273,7 @@ app.get("/", (req, res) => {
           const buyerEmail = prompt("Enter your email:");
           if (buyerEmail) {
             try {
-              const response = await fetch("/payment", {
+              const response = await fetch("https://car-parking-store.onrender.com/payment", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ productId, buyerEmail })
@@ -413,3 +413,4 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://localhost:${PORT}`);
   console.log(`Initial products loaded: ${products.length}`);
 });
+
