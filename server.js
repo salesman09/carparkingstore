@@ -94,9 +94,14 @@ let products = [
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-// Allow requests from your frontend domain(s)
+// In your server.js
 app.use(cors({
-  origin: ['https://car-parking-store.onrender.com', 'http://localhost:3001'] // Add dev/prod URLs
+  origin: [
+    'https://car-parking-store.onrender.com', // Your Render URL
+    'http://localhost:3001' // Local development
+  ],
+  methods: ['GET', 'POST'],
+  credentials: true
 }));
 
 let orders = [];
@@ -253,8 +258,8 @@ app.get("/", (req, res) => {
           <h2>Owned by Salesman Empire & 1NeedForSpeed</h2>
         </div>
       </header>
-      
-      <div class="products-grid">
+	  
+	        <div class="products-grid">
         ${products.map(product => `
           <div class="product">
             <img src="${product.image}" alt="${product.name}">
@@ -269,32 +274,44 @@ app.get("/", (req, res) => {
       </div>
 
       <script>
-         async function buyNow(productId) {
+        const API_URL = 'https://car-parking-store.onrender.com/payment';
+
+        async function buyNow(productId) {
           const buyerEmail = prompt("Enter your email:");
           if (buyerEmail) {
             try {
-              const response = await fetch("https://car-parking-store.onrender.com/payment", {
+              const response = await fetch(API_URL, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ productId, buyerEmail })
+                headers: { 
+                  "Content-Type": "application/json",
+                  "Accept": "application/json"
+                },
+                body: JSON.stringify({
+                  productId: productId,
+                  buyerEmail: buyerEmail
+                })
               });
-              const result = await response.text();
-              alert(result);
+              
+              const result = await response.json();
+              
+              if (!response.ok) {
+                throw new Error(result.error || "Payment failed");
+              }
+              
+              alert(result.message);
             } catch (error) {
               console.error('Purchase error:', error);
-              alert('Payment failed! Please check console for details.');
-			  
+              alert(`Payment Error: ${error.message}`);
             }
           }
         }
       </script>
-	  <script>
-  const API_URL = 'https://car-parking-store.onrender.com/payment';
-</script>
     </body>
     </html>
   `);
 });
+      
+
 
 
 // Payment handler with email notifications
