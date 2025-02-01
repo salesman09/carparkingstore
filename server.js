@@ -271,49 +271,40 @@ app.get("/", (req, res) => {
             </div>
           </div>
         `).join('')}
-      </div>
+<script>
+  const API_URL = 'https://car-parking-store.onrender.com/payment';
 
-      <script>
-        const API_URL = 'https://car-parking-store.onrender.com/payment';
+  async function buyNow(productId) {
+    const buyerEmail = prompt("Enter your email:");
+    if (buyerEmail) {
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({ productId, buyerEmail })
+        });
 
-        async function buyNow(productId) {
-          const buyerEmail = prompt("Enter your email:");
-          if (buyerEmail) {
-            try {
-              const response = await fetch(API_URL, {
-                method: "POST",
-                headers: { 
-                  "Content-Type": "application/json",
-                  "Accept": "application/json"
-                },
-                body: JSON.stringify({
-                  productId: productId,
-                  buyerEmail: buyerEmail
-                })
-              });
-              
-              const result = await response.json();
-              
-              if (!response.ok) {
-                throw new Error(result.error || "Payment failed");
-              }
-              
-              alert(result.message);
-            } catch (error) {
-              console.error('Purchase error:', error);
-              alert(`Payment Error: ${error.message}`);
-            }
-          }
+        const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(result.error || "Payment failed");
         }
-      </script>
+        
+        alert(result.message);
+      } catch (error) {
+        console.error('Purchase error:', error);
+        alert(`Payment failed: ${error.message}`);
+      }
+    }
+  }
+</script>
     </body>
     </html>
   `);
 });
-      
-
-
-
 // Payment handler with email notifications
 app.post("/payment", async (req, res) => {
   const { productId, buyerEmail } = req.body;
