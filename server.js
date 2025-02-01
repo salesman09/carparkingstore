@@ -104,6 +104,16 @@ app.use(cors({
   credentials: true
 }));
 
+// Add this before your other routes
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok',
+    time: new Date().toISOString(),
+    orders: orders.length,
+    products: products.length
+  });
+});
+
 let orders = [];
 let nextOrderId = 1;
 
@@ -274,50 +284,51 @@ app.get("/", (req, res) => {
         </div>
       </div>
 
-      <script>
-        const API_URL = 'https://car-parking-store.onrender.com/payment';
+<script>
+  async function buyNow(productId) {
+    const buyerEmail = prompt("Enter your email:");
+    if (buyerEmail) {
+      try {
+        const response = await fetch('https://car-parking-store.onrender.com/payment', {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({ 
+            productId: Number(productId), // Explicit conversion
+            buyerEmail 
+          })
+        });
+
+        const result = await response.json();
         
-        async function buyNow(productId) {
-          const buyerEmail = prompt("Enter your email:");
-          if (buyerEmail) {
-            try {
-              const response = await fetch(API_URL, {
-                method: "POST",
-                headers: { 
-                  "Content-Type": "application/json",
-                  "Accept": "application/json"
-                },
-                body: JSON.stringify({ productId, buyerEmail })
-              });
-              
-              const result = await response.json();
-              
-              if (!response.ok) {
-                throw new Error(result.error || "Payment failed");
-              }
-              
-              alert(result.message);
-            } catch (error) {
-              console.error('Error:', error);
-              alert("Payment failed: " + error.message);
-            }
-          }
+        if (!response.ok) {
+          throw new Error(result.error || "Payment failed");
         }
-      </script>
-    </body>
-    </html>
-  `);
-});
-
-
-// Payment handler with email notifications
-app.post("/payment", async (req, res) => {
-  const { productId, buyerEmail } = req.body;
-  const product = products.find(p => p.id === productId);
-  
-  if (!product) {
-    return res.status(404).send("Product not found.");
+        
+        alert(result.message);
+      } catch (error) {
+        console.error('Error:', error);
+        alert(`Payment failed: ${error.message}`);
+      }
+    }
   }
+</script>
+
+// Backend route
+app.post("/payment", async (req, res) => {
+  try {
+    const { productId, buyerEmail } = req.body;
+    const numericProductId = Number(productId);
+    const product = products.find(p => p.id === numericProductId);
+
+    if (!product) {
+      return res.status(404).json({
+        error: "Product not found",
+        availableIds: products.map(p => p.id)
+      });
+    }
 
   // Create order
   const newOrder = {
@@ -327,8 +338,16 @@ app.post("/payment", async (req, res) => {
     status: "Pending",
     timestamp: new Date().toISOString()
   };
-  orders.push(newOrder);
-
+ 
+ orders.push(newOrder);
+ } catch (error) {
+    console.error("Payment error:", error);
+    res.status(500).json({ 
+      error: "Payment processing failed",
+      details: error.message 
+    });
+  }
+});
   // Find available credentials
   const availableCreds = product.emailPasswords.find(ep => !ep.assigned);
   if (!availableCreds) {
