@@ -259,52 +259,57 @@ app.get("/", (req, res) => {
         </div>
       </header>
 	  
-	        <div class="products-grid">
-        ${products.map(product => `
-          <div class="product">
-            <img src="${product.image}" alt="${product.name}">
-            <div class="product-content">
-              <h2>${product.name}</h2>
-              <p>${product.description}</p>
-              <p>💰 Price: $${product.price}</p>
-              <button onclick="buyNow(${product.id})">BUY NOW</button>
+        <div class="products-grid">
+          ${products.map(product => `
+            <div class="product">
+              <img src="${product.image}" alt="${product.name.replace(/`/g, '')}">
+              <div class="product-content">
+                <h2>${product.name.replace(/`/g, '')}</h2>
+                <p>${product.description.replace(/`/g, '')}</p>
+                <p>💰 Price: $${product.price}</p>
+                <button onclick="buyNow(${product.id})">BUY NOW</button>
+              </div>
             </div>
-          </div>
-        `).join('')}
-<script>
-  const API_URL = 'https://car-parking-store.onrender.com/payment';
+          `).join('')}
+        </div>
+      </div>
 
-  async function buyNow(productId) {
-    const buyerEmail = prompt("Enter your email:");
-    if (buyerEmail) {
-      try {
-        const response = await fetch(API_URL, {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-          },
-          body: JSON.stringify({ productId, buyerEmail })
-        });
-
-        const result = await response.json();
+      <script>
+        const API_URL = 'https://car-parking-store.onrender.com/payment';
         
-        if (!response.ok) {
-          throw new Error(result.error || "Payment failed");
+        async function buyNow(productId) {
+          const buyerEmail = prompt("Enter your email:");
+          if (buyerEmail) {
+            try {
+              const response = await fetch(API_URL, {
+                method: "POST",
+                headers: { 
+                  "Content-Type": "application/json",
+                  "Accept": "application/json"
+                },
+                body: JSON.stringify({ productId, buyerEmail })
+              });
+              
+              const result = await response.json();
+              
+              if (!response.ok) {
+                throw new Error(result.error || "Payment failed");
+              }
+              
+              alert(result.message);
+            } catch (error) {
+              console.error('Error:', error);
+              alert("Payment failed: " + error.message);
+            }
+          }
         }
-        
-        alert(result.message);
-      } catch (error) {
-        console.error('Purchase error:', error);
-        alert(`Payment failed: ${error.message}`);
-      }
-    }
-  }
-</script>
+      </script>
     </body>
     </html>
   `);
 });
+
+
 // Payment handler with email notifications
 app.post("/payment", async (req, res) => {
   const { productId, buyerEmail } = req.body;
