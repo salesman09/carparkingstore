@@ -289,7 +289,7 @@ app.get("/", (req, res) => {
         }
       </script>
 	  <script>
-  const API_URL = 'https://github.com/salesman09/carparkingstore';
+  const API_URL = 'https://car-parking-store.onrender.com/payment';
 </script>
     </body>
     </html>
