@@ -94,25 +94,10 @@ let products = [
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-// In your server.js
+// Allow requests from your frontend domain(s)
 app.use(cors({
-  origin: [
-    'https://car-parking-store.onrender.com', // Your Render URL
-    'http://localhost:3001' // Local development
-  ],
-  methods: ['GET', 'POST'],
-  credentials: true
+  origin: ['https://github.com/salesman09/carparkingstore', 'http://localhost:3001'] // Add dev/prod URLs
 }));
-
-// Add this before your other routes
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok',
-    time: new Date().toISOString(),
-    orders: orders.length,
-    products: products.length
-  });
-});
 
 let orders = [];
 let nextOrderId = 1;
@@ -268,67 +253,58 @@ app.get("/", (req, res) => {
           <h2>Owned by Salesman Empire & 1NeedForSpeed</h2>
         </div>
       </header>
-	  
-        <div class="products-grid">
-          ${products.map(product => `
-            <div class="product">
-              <img src="${product.image}" alt="${product.name.replace(/`/g, '')}">
-              <div class="product-content">
-                <h2>${product.name.replace(/`/g, '')}</h2>
-                <p>${product.description.replace(/`/g, '')}</p>
-                <p>💰 Price: $${product.price}</p>
-                <button onclick="buyNow(${product.id})">BUY NOW</button>
-              </div>
+      
+      <div class="products-grid">
+        ${products.map(product => `
+          <div class="product">
+            <img src="${product.image}" alt="${product.name}">
+            <div class="product-content">
+              <h2>${product.name}</h2>
+              <p>${product.description}</p>
+              <p>💰 Price: $${product.price}</p>
+              <button onclick="buyNow(${product.id})">BUY NOW</button>
             </div>
-          `).join('')}
-        </div>
+          </div>
+        `).join('')}
       </div>
 
-<script>
-  async function buyNow(productId) {
-    const buyerEmail = prompt("Enter your email:");
-    if (buyerEmail) {
-      try {
-        const response = await fetch('https://car-parking-store.onrender.com/payment', {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-          },
-          body: JSON.stringify({ 
-            productId: Number(productId), // Explicit conversion
-            buyerEmail 
-          })
-        });
-
-        const result = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(result.error || "Payment failed");
+      <script>
+         async function buyNow(productId) {
+          const buyerEmail = prompt("Enter your email:");
+          if (buyerEmail) {
+            try {
+              const response = await fetch("/payment", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ productId, buyerEmail })
+              });
+              const result = await response.text();
+              alert(result);
+            } catch (error) {
+              console.error('Purchase error:', error);
+              alert('Payment failed! Please check console for details.');
+			  
+            }
+          }
         }
-        
-        alert(result.message);
-      } catch (error) {
-        console.error('Error:', error);
-        alert(`Payment failed: ${error.message}`);
-      }
-    }
-  }
+      </script>
+	  <script>
+  const API_URL = 'https://github.com/salesman09/carparkingstore';
 </script>
+    </body>
+    </html>
+  `);
+});
 
-// Backend route
+
+// Payment handler with email notifications
 app.post("/payment", async (req, res) => {
-  try {
-    const { productId, buyerEmail } = req.body;
-    const numericProductId = Number(productId);
-    const product = products.find(p => p.id === numericProductId);
-
-    if (!product) {
-      return res.status(404).json({
-        error: "Product not found",
-        availableIds: products.map(p => p.id)
-      });
-    }
+  const { productId, buyerEmail } = req.body;
+  const product = products.find(p => p.id === productId);
+  
+  if (!product) {
+    return res.status(404).send("Product not found.");
+  }
 
   // Create order
   const newOrder = {
@@ -338,16 +314,8 @@ app.post("/payment", async (req, res) => {
     status: "Pending",
     timestamp: new Date().toISOString()
   };
- 
- orders.push(newOrder);
- } catch (error) {
-    console.error("Payment error:", error);
-    res.status(500).json({ 
-      error: "Payment processing failed",
-      details: error.message 
-    });
-  }
-});
+  orders.push(newOrder);
+
   // Find available credentials
   const availableCreds = product.emailPasswords.find(ep => !ep.assigned);
   if (!availableCreds) {
@@ -445,4 +413,3 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://localhost:${PORT}`);
   console.log(`Initial products loaded: ${products.length}`);
 });
-
