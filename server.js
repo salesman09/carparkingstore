@@ -94,6 +94,8 @@ let products = [
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(express.json());
+
 // Allow requests from your frontend domain(s)
 app.use(cors({
   origin: ['https://github.com/salesman09/carparkingstore', 'http://localhost:3001'] // Add dev/prod URLs
@@ -104,6 +106,8 @@ let nextOrderId = 1;
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(express.json());
+
 
 // Enhanced email transporter configuration
 const transporter = nodemailer.createTransport({
